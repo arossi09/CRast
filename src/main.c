@@ -8,9 +8,13 @@ int main(int argc, char* argv[]){
         return -1;
     }
 
-    struct TGA_header header = loadTGA(argv[1]);
 
-    printHeader(&header);
+    struct TGA_image image = loadTGA(argv[1]);
+    printHeader(&image.header);
+
+    for(int i = 0; i < sizeof(image.pixel_bits); i++){
+        printf("%d ", image.pixel_bits[i]);
+    }
 
     return 0;
 }
