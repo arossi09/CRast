@@ -214,7 +214,7 @@ int setPixel(struct TGA_image image, int x, int y, TGAColor color){
     raw[3] = color.a;
     
     //we need to iterate jummp to positition and copy the color to it
-    memcpy(image.pixel_bytes+(x+y*image.header.width)*image.header.pixel_depth,
+    memcpy(image.pixel_bytes+(x+y*image.header.width)*image.header.pixel_depth/8,
             raw, image.header.pixel_depth/8);
     return 1;
 }
