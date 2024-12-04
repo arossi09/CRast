@@ -4,6 +4,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+typedef enum {
+    GRAYSCALE=1,
+    RGB=3,
+    RGBA=4
+}Depth;
+
 //struct to hold the data of the 
 //TGA header
 #pragma pack(push, 1)
@@ -28,21 +34,34 @@ struct TGA_header{
 
 struct TGA_image{
     struct TGA_header header;
-    unsigned char *pixel_bits;
+    unsigned char *pixel_bytes;
     size_t size;
 };
 
-//loading image
+typedef struct{
+    unsigned char r;
+    unsigned char g;
+    unsigned char b;
+    unsigned char a;
+}TGAColor;
+
+
+//loading image and creatings
 struct TGA_image loadTGA(const char *filename);
+struct TGA_image createTGA(int width, int height, Depth format);
 int validateHeader(const struct TGA_header *header);
 int decode_RLE(unsigned char **data, size_t *size);
 
 //saving image
-int writeTGA(const char *filename, int rle);
+int writeTGA(const struct TGA_image image, const char *filename, int rle);
 
 
 //manipulation
 void printHeader(const struct TGA_header *header);
+int setPixel(struct TGA_image image, int x, int y, TGAColor color);
+
+
+
 
 
 

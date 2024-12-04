@@ -2,6 +2,11 @@
 
 
 #define BUFF 1024
+#define RW_PERM 0666
+
+
+// need to make it so multiple color types are available
+// for writing
 
 //given a TGA file path and a TGA_header struct
 //loads the header data into the struct passed
@@ -36,10 +41,12 @@ struct TGA_image loadTGA(const char *filename){
     //we need to allocate memory for the pixel data
     int bytes_per_pixel = image.header.pixel_depth / 8;
     size_t data_size = image.header.width * image.header.height * bytes_per_pixel;
-    image.pixel_bits = (unsigned char*)malloc(data_size);
+    image.pixel_bytes = (unsigned char*)malloc(data_size);
     image.size = data_size;
 
-    if(!image.pixel_bits){
+
+
+    if(!image.pixel_bytes){
         perror("failed to allocate memory for pixel bits.\n");
         close(fd);
         exit(1);
@@ -49,10 +56,10 @@ struct TGA_image loadTGA(const char *filename){
     //check the image type to see if its compressed or not
     if(image.header.image_type == 2 || image.header.image_type == 3 ||
             image.header.image_type == 0){
-        read(fd, image.pixel_bits, data_size);
+        read(fd, image.pixel_bytes, data_size);
     }else if(image.header.image_type == 10){
-        read(fd, image.pixel_bits, data_size);
-        decode_RLE(&image.pixel_bits, &image.size);
+        read(fd, image.pixel_bytes, data_size);
+        decode_RLE(&image.pixel_bytes, &image.size);
     }
 
     printf("%d x %d, %d\n", image.header.width, image.header.height,
@@ -65,6 +72,7 @@ struct TGA_image loadTGA(const char *filename){
 }
 
 
+//used for decoding RLE encoded format
 //dont know if this works
 int decode_RLE(unsigned char **data, size_t *size){
     size_t buffer_size = *size;
@@ -112,6 +120,7 @@ int decode_RLE(unsigned char **data, size_t *size){
     return 1;
 }
 
+//validates headers to ensure they aren't corrupted
 int validateHeader(const struct TGA_header *header){
     
     size_t bytes_per_pixel = header->pixel_depth/8;
@@ -146,6 +155,69 @@ int validateHeader(const struct TGA_header *header){
 
 }
 
+
+
+struct TGA_image createTGA(int width, int height, Depth format){
+    struct TGA_image image;
+    memset(&image.header, 0, sizeof(image.header));
+
+    image.header.image_type = 2;
+    image.header.width = width;
+    image.header.height = height;
+    image.header.pixel_depth = format * 8;
+    image.size = width*height*format;
+    printf("%lu\n", image.size);
+    image.pixel_bytes = calloc(image.size, sizeof(char));
+    if(image.pixel_bytes == NULL){
+        perror("createTGA: Could not allocate pixel data for image\n");
+        exit(1);
+    }
+
+    return image;
+}
+
+//Used for saving image
+int writeTGA(const struct TGA_image image, const char *filename, int rle){
+    int fd = open(filename, O_RDWR | O_TRUNC | O_CREAT,  RW_PERM);
+
+    size_t bytes_written = write(fd, &image.header, sizeof(image.header));
+
+    if(bytes_written != sizeof(image.header)){
+        perror("Failed to write header to outfile!\n");
+        return -1;
+    }
+
+
+    bytes_written = write(fd, image.pixel_bytes, image.size);
+
+    if(bytes_written != image.size){
+        perror("Failed to write image to outfile!\n");
+        return -1;
+    }
+
+    close(fd);
+    return 1;
+}
+
+
+int setPixel(struct TGA_image image, int x, int y, TGAColor color){
+    if(x < 0 || y < 0 || x >= image.header.width 
+            || y >= image.header.height || image.size == 0){
+        return -1;
+    }
+
+    //reverse order to account for TGA BGR format
+    unsigned char raw[4];
+    raw[0] = color.b;
+    raw[1] = color.g;
+    raw[2] = color.r;
+    raw[3] = color.a;
+    
+    //we need to iterate jummp to positition and copy the color to it
+    memcpy(image.pixel_bytes+(x+y*image.header.width)*image.header.pixel_depth,
+            raw, image.header.pixel_depth/8);
+    return 1;
+}
 
 void printHeader(const struct TGA_header *header){
     printf("ID: %d\n", header->ID);
