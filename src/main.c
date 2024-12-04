@@ -12,9 +12,5 @@ int main(int argc, char* argv[]){
     struct TGA_image image = loadTGA(argv[1]);
     printHeader(&image.header);
 
-    for(int i = 0; i < sizeof(image.pixel_bits); i++){
-        printf("%d ", image.pixel_bits[i]);
-    }
-
     return 0;
 }

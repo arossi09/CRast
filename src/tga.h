@@ -29,13 +29,16 @@ struct TGA_header{
 struct TGA_image{
     struct TGA_header header;
     unsigned char *pixel_bits;
+    size_t size;
 };
 
 //loading image
 struct TGA_image loadTGA(const char *filename);
 int validateHeader(const struct TGA_header *header);
+int decode_RLE(unsigned char **data, size_t *size);
 
 //saving image
+int writeTGA(const char *filename, int rle);
 
 
 //manipulation

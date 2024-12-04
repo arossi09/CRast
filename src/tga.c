@@ -1,6 +1,7 @@
 #include "tga.h"
 
 
+#define BUFF 1024
 
 //given a TGA file path and a TGA_header struct
 //loads the header data into the struct passed
@@ -35,7 +36,8 @@ struct TGA_image loadTGA(const char *filename){
     //we need to allocate memory for the pixel data
     int bytes_per_pixel = image.header.pixel_depth / 8;
     size_t data_size = image.header.width * image.header.height * bytes_per_pixel;
-    image.pixel_bits = malloc(sizeof(data_size));
+    image.pixel_bits = (unsigned char*)malloc(data_size);
+    image.size = data_size;
 
     if(!image.pixel_bits){
         perror("failed to allocate memory for pixel bits.\n");
@@ -45,10 +47,12 @@ struct TGA_image loadTGA(const char *filename){
   
 
     //check the image type to see if its compressed or not
-    if(image.header.image_type == 2 || image.header.image_type == 3){
+    if(image.header.image_type == 2 || image.header.image_type == 3 ||
+            image.header.image_type == 0){
         read(fd, image.pixel_bits, data_size);
     }else if(image.header.image_type == 10){
-
+        read(fd, image.pixel_bits, data_size);
+        decode_RLE(&image.pixel_bits, &image.size);
     }
 
     printf("%d x %d, %d\n", image.header.width, image.header.height,
@@ -58,6 +62,54 @@ struct TGA_image loadTGA(const char *filename){
     close(fd);
 
     return image;
+}
+
+
+//dont know if this works
+int decode_RLE(unsigned char **data, size_t *size){
+    size_t buffer_size = *size;
+    unsigned char *decoded_data = (unsigned char*)malloc(*size);
+
+    if(decoded_data == NULL){
+        printf("decode_RLE: couldnt alocate memory\n");
+        return 0;
+    }
+
+    int count;
+    char character;
+    int new_size = 0;
+
+    for(int i = 0; i < *size-2; i+=2){
+       count = *data[i] - 48; 
+       character = *data[i+1];
+
+       while(new_size + count > buffer_size){
+           buffer_size *= 2;
+           unsigned char *temp = (unsigned char*)realloc(decoded_data, buffer_size);
+           if(temp == NULL){
+               printf("decode_RLE: coulndt realloc mem\n");
+               free(decoded_data);
+               return 0;
+           }
+           decoded_data = temp;
+       }
+
+       for(int j = 0; j < count; j++){
+           decoded_data[new_size] = character;
+           new_size++;
+       }
+    }
+
+
+    *data = realloc(decoded_data, new_size);
+    *size = new_size;
+
+    if(data == NULL){
+        printf("decode_RLE, failed to realloc data\n");
+        return 0;
+    }
+
+    return 1;
 }
 
 int validateHeader(const struct TGA_header *header){
