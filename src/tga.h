@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
+#include <arpa/inet.h>
 
 typedef enum {
     GRAYSCALE=1,
@@ -38,12 +39,12 @@ struct TGA_image{
     size_t size;
 };
 
-typedef struct{
+struct TGAColor{
     unsigned char r;
     unsigned char g;
     unsigned char b;
     unsigned char a;
-}TGAColor;
+};
 
 
 //loading image and creatings
@@ -58,7 +59,7 @@ int writeTGA(const struct TGA_image image, const char *filename, int rle);
 
 //manipulation
 void printHeader(const struct TGA_header *header);
-int setPixel(struct TGA_image image, int x, int y, TGAColor color);
+int setPixel(struct TGA_image image, int x, int y, struct TGAColor color);
 
 
 

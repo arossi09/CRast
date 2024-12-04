@@ -200,7 +200,7 @@ int writeTGA(const struct TGA_image image, const char *filename, int rle){
 }
 
 
-int setPixel(struct TGA_image image, int x, int y, TGAColor color){
+int setPixel(struct TGA_image image, int x, int y, struct TGAColor color){
     if(x < 0 || y < 0 || x >= image.header.width 
             || y >= image.header.height || image.size == 0){
         return -1;
