@@ -5,9 +5,6 @@
 #define RW_PERM 0666
 
 
-// need to make it so multiple color types are available
-// for writing
-
 //given a TGA file path and a TGA_header struct
 //loads the header data into the struct passed
 struct TGA_image loadTGA(const char *filename){
@@ -62,8 +59,6 @@ struct TGA_image loadTGA(const char *filename){
         decode_RLE(&image.pixel_bytes, &image.size);
     }
 
-    printf("%d x %d, %d\n", image.header.width, image.header.height,
-            bytes_per_pixel);
 
     //needs to read rest
     close(fd);
@@ -166,7 +161,6 @@ struct TGA_image createTGA(int width, int height, Depth format){
     image.header.height = height;
     image.header.pixel_depth = format * 8;
     image.size = width*height*format;
-    printf("%lu\n", image.size);
     image.pixel_bytes = calloc(image.size, sizeof(char));
     if(image.pixel_bytes == NULL){
         perror("createTGA: Could not allocate pixel data for image\n");
@@ -219,7 +213,32 @@ int setPixel(struct TGA_image image, int x, int y, struct TGAColor color){
     return 1;
 }
 
+struct TGAColor getPixel(struct TGA_image image, int x, int y){
+    struct TGAColor pixel = {0, 0, 0, 255};
+    if(x < 0 || y < 0 || x >= image.header.width 
+            || y >= image.header.height || image.size == 0){
+        return pixel;
+    }
+    int bpp = image.header.pixel_depth/8;
+    int pos = (x+y*image.header.width)*bpp;
+
+    char raw[bpp];
+    int i = 0;
+   
+    for(int byte = pos+bpp-1; byte >= pos; byte--){
+        raw[i] = image.pixel_bytes[byte];
+        i++;
+    }
+
+
+    memcpy(&pixel, raw, bpp);
+    return pixel;
+}
+
 void printHeader(const struct TGA_header *header){
+
+    printf("%d x %d, %d\n", header->width, header->height,
+            header->pixel_depth/8);
     printf("ID: %d\n", header->ID);
     printf("Color Image type: %d\n",header->cm_type);
     printf("Image Type: %d\n", header->image_type);
@@ -233,4 +252,3 @@ void printHeader(const struct TGA_header *header){
     printf("Pixel depth: %d\n", header->pixel_depth);
     printf("Image descriptory: %d\n", header->image_descriptor);
 }
-

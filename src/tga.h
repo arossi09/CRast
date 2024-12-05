@@ -60,6 +60,7 @@ int writeTGA(const struct TGA_image image, const char *filename, int rle);
 //manipulation
 void printHeader(const struct TGA_header *header);
 int setPixel(struct TGA_image image, int x, int y, struct TGAColor color);
+struct TGAColor getPixel(struct TGA_image image, int x, int y);
 
 
 
