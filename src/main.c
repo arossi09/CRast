@@ -47,6 +47,10 @@ int main(int argc, char* argv[]){
     struct TGA_image image = createTGA(100, 100, RGB);
     struct OBJ_Model object = loadModel("obj/african_head.obj");
 
+    printf("%f %f %f\n", object.vertices[1].x, object.vertices[1].y, object.vertices[1].z);
+    printf("%d %d %d\n", object.faces[1].v1, object.faces[1].v2, object.faces[1].v3);
+    printf("%d\n", object.nfaces);
+
     printHeader(&image.header); 
 
     struct TGAColor red = {255, 0, 0};
@@ -65,6 +69,7 @@ int main(int argc, char* argv[]){
 
 
     free(image.pixel_bytes);
+    freeObj(object);
 
     return 0;
 }
