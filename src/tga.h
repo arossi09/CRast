@@ -1,9 +1,7 @@
+#ifndef TGA_H
+#define TGA_H
+
 #include <stdio.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <string.h>
-#include <arpa/inet.h>
 
 typedef enum {
     GRAYSCALE=1,
@@ -56,14 +54,9 @@ int decode_RLE(unsigned char **data, size_t *size);
 //saving image
 int writeTGA(const struct TGA_image image, const char *filename, int rle);
 
-
 //manipulation
 void printHeader(const struct TGA_header *header);
 int setPixel(struct TGA_image image, int x, int y, struct TGAColor color);
 struct TGAColor getPixel(struct TGA_image image, int x, int y);
 
-
-
-
-
-
+#endif

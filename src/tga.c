@@ -1,5 +1,9 @@
 #include "tga.h"
-
+#include <fcntl.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <string.h>
+#include <arpa/inet.h>
 
 #define BUFF 1024
 #define RW_PERM 0666

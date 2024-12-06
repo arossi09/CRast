@@ -1,5 +1,7 @@
 #include "tga.h"
-
+#include "obj_loader.h"
+#include <stdio.h>
+#include <stdlib.h>
 
 void swap(int *x, int *y){
     if(x == y) return;
@@ -43,8 +45,9 @@ int main(int argc, char* argv[]){
 
     //struct TGA_image image = loadTGA(argv[1]);
     struct TGA_image image = createTGA(100, 100, RGB);
-    printHeader(&image.header);
-  
+    struct OBJ_Model object = loadModel("obj/african_head.obj");
+
+    printHeader(&image.header); 
 
     struct TGAColor red = {255, 0, 0};
     struct TGAColor white = {255, 255, 255};
@@ -58,7 +61,9 @@ int main(int argc, char* argv[]){
     line(50, 20, 80, 60, image, red);
     line(50, 0, 50, 20, image, red);
 
-    writeTGA(image, "outfile.tga", 0);
+    writeTGA(image, "tga/outfile.tga", 0);
+
+
     free(image.pixel_bytes);
 
     return 0;
