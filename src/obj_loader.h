@@ -15,6 +15,7 @@ struct face{
     int v1;
     int v2;
     int v3;
+    int indices[3];
 };
 
 struct OBJ_Model{

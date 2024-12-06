@@ -3,6 +3,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define WIDTH 800
+#define HEIGHT 800
+
 void swap(int *x, int *y){
     if(x == y) return;
     *x ^= *y;
@@ -42,34 +45,33 @@ void line(int x0, int y0, int x1, int y1, struct TGA_image image,
 }
 int main(int argc, char* argv[]){
 
-
-    //struct TGA_image image = loadTGA(argv[1]);
-    struct TGA_image image = createTGA(100, 100, RGB);
-    struct OBJ_Model object = loadModel("obj/african_head.obj");
-
-    printf("%f %f %f\n", object.vertices[1].x, object.vertices[1].y, object.vertices[1].z);
-    printf("%d %d %d\n", object.faces[1].v1, object.faces[1].v2, object.faces[1].v3);
-    printf("%d\n", object.nfaces);
-
-    printHeader(&image.header); 
-
-    struct TGAColor red = {255, 0, 0};
     struct TGAColor white = {255, 255, 255};
 
-    line(55, 70, 80, 60, image, red);
-    line(50, 60, 55, 70, image, red);
-    line(20, 60, 45, 70, image, red);
-    line(45, 70, 50, 60, image, red);
-    line(20, 60, 45, 70, image, red);
-    line(20, 60, 50, 20, image, red);
-    line(50, 20, 80, 60, image, red);
-    line(50, 0, 50, 20, image, red);
+    //struct TGA_image image = loadTGA(argv[1]);
+    struct TGA_image image = createTGA(WIDTH, HEIGHT, RGB);
+    struct OBJ_Model model = loadModel("obj/african_head.obj");
+
+    //draw triangles based off object file
+    for(int i = 0; i < model.nfaces; i++){
+        struct face face = model.faces[i];
+        for(int j = 0; j < 3;j++){
+            //subtract 1 from index because it is relative
+            struct vertex v0 = model.vertices[face.indices[j]-1];
+            //second index is moduloed because it will be 4 but needs
+            //to be drawn to 1
+            struct vertex v1 = model.vertices[face.indices[(j+1)%3]-1];
+            int x0 = (v0.x + 1.)*WIDTH/2;
+            int y0 = (v0.y + 1.)*HEIGHT/2;
+            int x1 = (v1.x + 1.)*WIDTH/2;
+            int y1 = (v1.y + 1.)*HEIGHT/2;
+            line(x0, y0, x1, y1, image, white);
+        }
+    }
 
     writeTGA(image, "tga/outfile.tga", 0);
 
-
     free(image.pixel_bytes);
-    freeObj(object);
+    freeObj(model);
 
     return 0;
 }
