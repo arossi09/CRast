@@ -15,8 +15,8 @@ struct OBJ_Model loadModel(const char *filename){
     }
 
     char line[BUFF];
-    int verts_buff_size = BUFF;
-    int faces_buff_size = BUFF;
+    ssize_t verts_buff_size = BUFF;
+    ssize_t faces_buff_size = BUFF;
     float x, y, z;
     int v1, v2, v3;
     obj.nverts = 0;
@@ -29,11 +29,11 @@ struct OBJ_Model loadModel(const char *filename){
 
     //read till EOF
     while(readLine(fd, line) > -1){
+        printLine(line);
         //we need to check if the beginning of the line 
         //is a vertex decleration
         if(strncmp(&line[0], "v ", 2) == 0){
-            printLine(line);
-            if(obj.nverts > verts_buff_size){
+            if(obj.nverts >= verts_buff_size){
                 verts_buff_size*=2;
                 struct vertex *temp = (struct vertex*)realloc(obj.vertices,
                         verts_buff_size*sizeof(struct vertex));
@@ -49,8 +49,7 @@ struct OBJ_Model loadModel(const char *filename){
             obj.nverts++;
         }    
         if(strncmp(&line[0], "f ", 2) == 0){
-           printLine(line);
-           if(obj.nfaces > faces_buff_size){
+           if(obj.nfaces >= faces_buff_size){
                faces_buff_size*=2;
                struct face *temp = (struct face*)realloc(obj.faces,
                        faces_buff_size*sizeof(struct face));
