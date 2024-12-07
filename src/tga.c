@@ -32,8 +32,8 @@ struct TGA_image loadTGA(const char *filename){
         exit(1);
 
 
-    //we need to convert the bytes from the network to host for the shorts
-    //because the file format is in little-endianess originally
+    //if the host stores bytes in big_endian then swap since the
+    //ordering of TGA files is little_endian to ensure correct memory values
     image.header.cm_start_index = ntohs(image.header.cm_start_index);
     image.header.cm_length = ntohs(image.header.cm_length);
     image.header.x_origin = ntohs(image.header.x_origin);

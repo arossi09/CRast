@@ -60,13 +60,16 @@ struct OBJ_Model loadModel(const char *filename){
                }
                obj.faces = temp;
            } 
-           sscanf(line, "%*c %d/%*d/%*d %d/%*d/%*d %d/%*d/%*d", &v1, &v2, &v3);
-           struct face face = {v1, v2, v3};
-           face.indices[0] = v1;
-           face.indices[1] = v2;
-           face.indices[2] = v3;
-           obj.faces[obj.nfaces] = face;
-           obj.nfaces++;
+           if(sscanf(line, "%*c %d/%*d/%*d %d/%*d/%*d %d/%*d/%*d", &v1, &v2, &v3) == 3
+                   || sscanf(line, "%*c %d %d %d", &v1, &v2, &v3) == 3
+                   || sscanf(line, "%*c %d//%*d %d//%*d %d//%*d", &v1, &v2, &v3) == 3){
+               struct face face = {v1, v2, v3};
+               face.indices[0] = v1;
+               face.indices[1] = v2;
+               face.indices[2] = v3;
+               obj.faces[obj.nfaces] = face;
+               obj.nfaces++;
+           }
         }
     }
 

@@ -44,12 +44,17 @@ void line(int x0, int y0, int x1, int y1, struct TGA_image image,
     }
 }
 int main(int argc, char* argv[]){
+    struct OBJ_Model model;
+    if(2 == argc){
+        model = loadModel(argv[1]);
+    }else{
+        model = loadModel("obj/african_head.obj");
+    }
 
     struct TGAColor white = {255, 255, 255};
 
     //struct TGA_image image = loadTGA(argv[1]);
     struct TGA_image image = createTGA(WIDTH, HEIGHT, RGB);
-    struct OBJ_Model model = loadModel("obj/african_head.obj");
 
     //draw triangles based off object file
     for(int i = 0; i < model.nfaces; i++){
@@ -60,6 +65,12 @@ int main(int argc, char* argv[]){
             //second index is moduloed because it will be 4 but needs
             //to be drawn to 1
             struct vertex v1 = model.vertices[face.indices[(j+1)%3]-1];
+            //we need to add 1 to shift to [0, 2] range for pixel cordinates
+            //0 is bottom left 1 is middle and 2 is the top right.
+            //We multiply by width and height divided by 2 so multiplying
+            //by the middle is the middle of the width and height and 
+            //mutliplying by the top right cancels the 2 so its
+            //just width and height.
             int x0 = (v0.x + 1.)*WIDTH/2;
             int y0 = (v0.y + 1.)*HEIGHT/2;
             int x1 = (v1.x + 1.)*WIDTH/2;
@@ -67,6 +78,7 @@ int main(int argc, char* argv[]){
             line(x0, y0, x1, y1, image, white);
         }
     }
+
 
     writeTGA(image, "tga/outfile.tga", 0);
 
