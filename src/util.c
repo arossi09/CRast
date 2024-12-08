@@ -28,3 +28,26 @@ void printLine(char *line){
     }
     printf("\n");
 }
+
+
+void swapi(int *x, int *y){
+    if(x == y) return;
+    *x ^= *y;
+    *y ^= *x;
+    *x ^= *y;
+}
+
+void swapv(struct vertexi *v0, struct vertexi *v1){
+    v0->x ^= v1->x;
+    v1->x ^= v0->x;
+    v0->x ^= v1->x;
+
+    v0->y ^= v1->y;
+    v1->y ^= v0->y;
+    v0->y ^= v1->y;
+
+    v0->z ^= v1->z;
+    v1->z ^= v0->z;
+    v0->z ^= v1->z;
+
+}

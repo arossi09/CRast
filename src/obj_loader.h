@@ -5,12 +5,6 @@
 
 #define BUFF 1024
 
-struct vertex{
-    float x;
-    float y;
-    float z;
-};
-
 struct face{
     int v1;
     int v2;
