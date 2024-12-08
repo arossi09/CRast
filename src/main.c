@@ -49,25 +49,62 @@ void line(int x0, int y0, int x1, int y1, struct TGA_image image,
 }
 
 
-void triangle(struct vertexi v0, struct vertexi v1, struct vertexi v2, 
-        struct TGA_image image){
+void triangle(struct Vert2i v0, struct Vert2i v1, struct Vert2i v2, 
+        struct TGA_image image, struct TGAColor color){
 
     if(v0.y > v1.y){swapv(&v0, &v1);};
     if(v1.y > v2.y){swapv(&v1, &v2);};
     if(v1.y > v2.y){swapv(&v1, &v2);};
-    line(v0.x, v0.y, v2.x, v2.y, image, blue);
-    line(v0.x, v0.y, v1.x, v1.y, image, red);
-    line(v1.x, v1.y, v2.x, v2.y, image, red);
+    int total_height = v2.y - v0.y;
+    for(int y = v0.y; y < v1.y; y++){
+        //gather the height between the first segment
+        int segment_height = v1.y - v0.y+1;
+        //alpha is the scaler we need for the left side
+        float alpha = (float)(y-v0.y)/total_height;
+        //beta is the scaler we need for the right sides vector
+        float beta  = (float)(y-v0.y)/segment_height;
+        //we need the resulting vertex of the left side
+        //from v0
+        // A = v0 + (v2 - v0)*alpha
+        struct Vert2i A = vector_add2i(v0, vector_scale2i(vector_sub2i(v2, v0), alpha));
+        // B = v0 + (v1 - v0)*beta
+        struct Vert2i B = vector_add2i(v0, vector_scale2i(vector_sub2i(v1, v0), beta));
+       
+        // we need to swap if A's x cordiante is bigger than B
+        // because we draw from left to right
+        if(A.x > B.x){
+            swapv(&A, &B);
+        }
+        for(int j = A.x; j < B.x; j++){
+            setPixel(image, j, y, color);
+        }
+    }
+    for(int y = v1.y; y < v2.y; y++){
+        //gather the height between the first segment
+        int segment_height = v2.y - v1.y+1;
+        //alpha is the scaler we need for the left side
+        float alpha = (float)(y-v0.y)/total_height;
+        //beta is the scaler we need for the right sides vector
+        float beta  = (float)(y-v1.y)/segment_height;
+        //we need the resulting vertex of the left side
+        //from v0
+        // A = v0 + (v2 - v0)*alpha
+        struct Vert2i A = vector_add2i(v0, vector_scale2i(vector_sub2i(v2, v0), alpha));
+        // B = v1 + (v2 - v1)*beta
+        struct Vert2i B = vector_add2i(v1, vector_scale2i(vector_sub2i(v2, v1), beta));
 
-    setPixel(image, (v2.x- v0.x), (v2.y-v0.y), white);
+        // we need to swap if A's x cordiante is bigger than B
+        // because we draw from left to right
+        if(A.x > B.x){
+            swapv(&A, &B);
+        }
+        for(int j = A.x; j < B.x; j++){
+            setPixel(image, j, y, color);
+    }
+}
 
-    /*
-    //move up from bottom vertex y to top
-    for(int i = v0.y; i < v2.y; i++){
-        //draw horizontal line from point on one side to other
-        //each y level find bounding points of each side and draw
-        line(_, i, _, i, image, red);
-    }*/
+
+
 }
 int main(int argc, char* argv[]){
 
@@ -84,23 +121,23 @@ int main(int argc, char* argv[]){
     struct TGA_image image = createTGA(WIDTH, HEIGHT, RGB);
 
     //triangle 1
-    struct vertexi v1 = {10, 10};
-    struct vertexi v2 = {40, 35};
-    struct vertexi v3 = {35, 60};
+    struct Vert2i v1 = {10, 10};
+    struct Vert2i v2 = {40, 35};
+    struct Vert2i v3 = {35, 60};
 
     //triangle 2 
-    struct vertexi v4 = {50, 50};
-    struct vertexi v5 = {70, 80};
-    struct vertexi v6 = {50, 80};
+    struct Vert2i v4 = {50, 50};
+    struct Vert2i v5 = {70, 80};
+    struct Vert2i v6 = {50, 80};
 
     //triangle 3
-    struct vertexi v7 = {40, 10};
-    struct vertexi v8 = {65, 20};
-    struct vertexi v9 = {55, 10};
+    struct Vert2i v7 = {40, 10};
+    struct Vert2i v8 = {65, 20};
+    struct Vert2i v9 = {55, 10};
 
-    triangle(v1, v2, v3, image);
-    triangle(v4, v5, v6, image);
-    triangle(v7, v8, v9, image);
+    triangle(v1, v2, v3, image, red);
+    triangle(v4, v5, v6, image, white);
+    triangle(v7, v8, v9, image, blue);
 
 
 
