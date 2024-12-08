@@ -24,7 +24,7 @@ struct OBJ_Model loadModel(const char *filename){
 
     //need ot allocate vertices as a dynamic array of arrays to hold
     //vertices
-    obj.vertices = (struct vertex*)malloc(verts_buff_size * sizeof(struct vertex)); 
+    obj.vertices = (struct vertexf*)malloc(verts_buff_size * sizeof(struct vertexf)); 
     obj.faces = (struct face*)malloc(faces_buff_size *sizeof(struct face));
 
     //read till EOF
@@ -35,8 +35,8 @@ struct OBJ_Model loadModel(const char *filename){
         if(strncmp(&line[0], "v ", 2) == 0){
             if(obj.nverts >= verts_buff_size){
                 verts_buff_size*=2;
-                struct vertex *temp = (struct vertex*)realloc(obj.vertices,
-                        verts_buff_size*sizeof(struct vertex));
+                struct vertexf *temp = (struct vertexf*)realloc(obj.vertices,
+                        verts_buff_size*sizeof(struct vertexf));
                 if(temp == NULL){
                     printf("OBJ_model: coulndt realloc mem\n");
                     return obj;
@@ -44,7 +44,7 @@ struct OBJ_Model loadModel(const char *filename){
                 obj.vertices = temp;
             }
             sscanf(line, "%*c %f %f %f", &x, &y, &z);
-            struct vertex vert = {x, y, z};
+            struct vertexf vert = {x, y, z};
             obj.vertices[obj.nverts] = vert;
             obj.nverts++;
         }    

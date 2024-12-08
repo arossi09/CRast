@@ -1,5 +1,6 @@
 #ifndef OBJ_LOADER_H
 #define OBJ_LOADER_H 
+#include "util.h"
 
 #include <stdio.h>
 
@@ -13,7 +14,7 @@ struct face{
 };
 
 struct OBJ_Model{
-    struct vertex *vertices;
+    struct vertexf *vertices;
     struct face *faces;
     int nverts;
     int nfaces;

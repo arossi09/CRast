@@ -59,12 +59,15 @@ void triangle(struct vertexi v0, struct vertexi v1, struct vertexi v2,
     line(v0.x, v0.y, v1.x, v1.y, image, red);
     line(v1.x, v1.y, v2.x, v2.y, image, red);
 
+    setPixel(image, (v2.x- v0.x), (v2.y-v0.y), white);
+
+    /*
     //move up from bottom vertex y to top
     for(int i = v0.y; i < v2.y; i++){
         //draw horizontal line from point on one side to other
         //each y level find bounding points of each side and draw
         line(_, i, _, i, image, red);
-    }
+    }*/
 }
 int main(int argc, char* argv[]){
 
