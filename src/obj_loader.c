@@ -1,5 +1,6 @@
 #include "obj_loader.h"
 #include "util.h"
+#include "vector.h"
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
@@ -24,7 +25,7 @@ struct OBJ_Model loadModel(const char *filename){
 
     //need ot allocate vertices as a dynamic array of arrays to hold
     //vertices
-    obj.vertices = (struct vertexf*)malloc(verts_buff_size * sizeof(struct vertexf)); 
+    obj.vertices = (struct Vec3f*)malloc(verts_buff_size * sizeof(struct Vec3f)); 
     obj.faces = (struct face*)malloc(faces_buff_size *sizeof(struct face));
 
     //read till EOF
@@ -35,8 +36,8 @@ struct OBJ_Model loadModel(const char *filename){
         if(strncmp(&line[0], "v ", 2) == 0){
             if(obj.nverts >= verts_buff_size){
                 verts_buff_size*=2;
-                struct vertexf *temp = (struct vertexf*)realloc(obj.vertices,
-                        verts_buff_size*sizeof(struct vertexf));
+                struct Vec3f *temp = (struct Vec3f*)realloc(obj.vertices,
+                        verts_buff_size*sizeof(struct Vec3f));
                 if(temp == NULL){
                     printf("OBJ_model: coulndt realloc mem\n");
                     return obj;
@@ -44,7 +45,7 @@ struct OBJ_Model loadModel(const char *filename){
                 obj.vertices = temp;
             }
             sscanf(line, "%*c %f %f %f", &x, &y, &z);
-            struct vertexf vert = {x, y, z};
+            struct Vec3f vert = {x, y, z};
             obj.vertices[obj.nverts] = vert;
             obj.nverts++;
         }    

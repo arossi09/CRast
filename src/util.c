@@ -1,6 +1,5 @@
 #include "util.h"
 #include <unistd.h> 
-#include <math.h>
 
 //readline currently operates on the size of the buffer passed 
 //which may be error prone
@@ -38,38 +37,9 @@ void swapi(int *x, int *y){
     *x ^= *y;
 }
 
-void swapv(struct Vert2i *v0, struct Vert2i *v1){
-    v0->x ^= v1->x;
-    v1->x ^= v0->x;
-    v0->x ^= v1->x;
-
-    v0->y ^= v1->y;
-    v1->y ^= v0->y;
-    v0->y ^= v1->y;
+int max(int x, int y){
+   return x >= y ? x : y; 
 }
-
-int distanceVi(struct Vert2i v0, struct Vert2i v1){
-    return (int)sqrt((v0.x - v1.x)^2 + (v0.y - v1.y)^2);
-}
-
-struct Vert2i vector_add2i(struct Vert2i v0, struct Vert2i v1){
-    int x = v0.x + v1.x;
-    int y = v0.y + v1.y;
-    struct Vert2i result = {x, y};
-    return result;
-}
-
-
-struct Vert2i vector_sub2i(struct Vert2i v0, struct Vert2i v1){
-    int x = v0.x - v1.x;
-    int y = v0.y - v1.y;
-    struct Vert2i result = {x, y};
-    return result;
-}
-
-struct Vert2i vector_scale2i(struct Vert2i v0, float scale){
-    int x = v0.x * scale;
-    int y = v0.y * scale;
-    struct Vert2i result = {x, y};
-    return result;
+int min(int x, int y){
+    return x <= y ? x : y;
 }

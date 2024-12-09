@@ -14,7 +14,7 @@ struct face{
 };
 
 struct OBJ_Model{
-    struct vertexf *vertices;
+    struct Vec3f *vertices;
     struct face *faces;
     int nverts;
     int nfaces;
