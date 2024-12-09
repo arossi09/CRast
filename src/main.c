@@ -52,11 +52,10 @@ void line(int x0, int y0, int x1, int y1, struct TGA_image image,
 
 
 
-struct Vec3f barycentric(struct Vec2i v0, struct Vec2i v1, struct Vec2i v2,
-        struct Vec2i p){
+struct Vec3f barycentric(struct Vec2i *pts, struct Vec2i p){
 
-   struct Vec3f temp1 = {v2.x - v0.x, v1.x - v0.x, v0.x - p.x};
-   struct Vec3f temp2 = {v2.y - v0.y, v1.y -v0.y, v0.y-p.y};
+   struct Vec3f temp1 = {pts[2].x - pts[0].x, pts[1].x - pts[0].x, pts[0].x - p.x};
+   struct Vec3f temp2 = {pts[2].y - pts[0].y, pts[1].y -pts[0].y, pts[0].y-p.y};
    struct Vec3f u = vector_cross(temp1, temp2);
    struct Vec3f tmp = {-1, 1, 1};
    if (abs(u.z) < 1) { return tmp; };
@@ -80,7 +79,7 @@ void triangle(struct Vec2i *pts,
     struct Vec2i P;
     for(P.x = bboxmin.x; P.x <= bboxmax.x; P.x++){
         for(P.y = bboxmin.y; P.y <= bboxmax.y; P.y++){
-            struct Vec3f bc_screen = barycentric(pts[0], pts[1], pts[2], P);
+            struct Vec3f bc_screen = barycentric(pts, P);
             if(bc_screen.x < 0 || bc_screen.y < 0 || bc_screen.z < 0)continue;
             setPixel(image, P.x, P.y, color);
         }
@@ -89,30 +88,58 @@ void triangle(struct Vec2i *pts,
 
 int main(int argc, char* argv[]){
     srand(time(NULL));
+    int wireframe = 0;
 
     struct OBJ_Model model;
-    if(2 == argc){
+    if(3 == argc){
         model = loadModel(argv[1]);
+        wireframe = 1;
     }else{
         model = loadModel("obj/african_head.obj");
     }
 
+    
+
     //struct TGA_image image = loadTGA(argv[1]);
     struct TGA_image image = createTGA(WIDTH, HEIGHT, RGB);
 
-    //draw triangles based off object file
-    for(int i = 0; i < model.nfaces; i++){
-        struct face face = model.faces[i];
-        struct Vec2i screen_coords[3];
-        for(int j = 0; j < 3;j++){
-            //subtract 1 from index because it is relative
-            struct Vec3f world_coords = model.vertices[face.indices[j]-1];
-            //convert the world cords to align properly in our view
-            struct Vec2i tmp = {(world_coords.x+1)*WIDTH/2., (world_coords.y+1)*HEIGHT/2};
-            screen_coords[j] = tmp;
+    if(!wireframe){
+        for(int i = 0; i < model.nfaces; i++){
+            //draw triangles based off object file
+            struct face face = model.faces[i];
+            struct Vec2i screen_coords[3];
+            for(int j = 0; j < 3;j++){
+                //subtract 1 from index because it is relative
+                struct Vec3f world_coords = model.vertices[face.indices[j]-1];
+                //convert the world cords to align properly in our view
+                struct Vec2i tmp = {(world_coords.x+1)*WIDTH/2., (world_coords.y+1)*HEIGHT/2};
+                screen_coords[j] = tmp;
+            }
+            struct TGAColor color = {rand()%255, rand()%255, rand()%255} ;
+            triangle(screen_coords, image, color);
         }
-        struct TGAColor color = {rand()%255, rand()%255, rand()%255} ;
-        triangle(screen_coords, image, color);
+    }else{
+        for(int i = 0; i < model.nfaces; i++){
+            struct face face = model.faces[i];
+            for(int j = 0; j < 3;j++){
+                //subtract 1 from index because it is relative
+                struct Vec3f v0 = model.vertices[face.indices[j]-1];
+                //second index is moduloed because it will be 4 but needs
+                //to be drawn to 1
+                struct Vec3f v1 = model.vertices[face.indices[(j+1)%3]-1];
+                //we need to add 1 to shift to [0, 2] range for pixel cordinates
+                //0 is bottom left 1 is middle and 2 is the top right.
+                //We multiply by width and height divided by 2 so multiplying
+                //by the middle is the middle of the width and height and 
+                //mutliplying by the top right cancels the 2 so its
+                //just width and height.
+                int x0 = (v0.x + 1.)*WIDTH/2;
+                int y0 = (v0.y + 1.)*HEIGHT/2;
+                int x1 = (v1.x + 1.)*WIDTH/2;
+                int y1 = (v1.y + 1.)*HEIGHT/2;
+                line(x0, y0, x1, y1, image, white);
+            }
+        }
     }
 
     writeTGA(image, "tga/outfile.tga", 0);
