@@ -18,7 +18,6 @@ struct TGAColor blue = {0, 0, 255};
 //Used this along with another class I wrote to read .obj files into
 //a data structure to be able to draw obj files to the tga file.
 
-
 void line(int x0, int y0, int x1, int y1, struct TGA_image image, 
         struct TGAColor color){
     int steep = 0;
@@ -53,11 +52,14 @@ void line(int x0, int y0, int x1, int y1, struct TGA_image image,
 
 
 struct Vec3f barycentric(struct Vec2i *pts, struct Vec2i p){
-
-   struct Vec3f temp1 = {pts[2].x - pts[0].x, pts[1].x - pts[0].x, pts[0].x - p.x};
-   struct Vec3f temp2 = {pts[2].y - pts[0].y, pts[1].y -pts[0].y, pts[0].y-p.y};
-   struct Vec3f u = vector_cross(temp1, temp2);
+    //we need to take the cross product between ABx ACx PAx & ABy ACy PAy
+    //in order to find the resulting orthogonal vector [u v 1]
+   struct Vec3f x_vector= {pts[2].x - pts[0].x, pts[1].x - pts[0].x, pts[0].x - p.x};
+   struct Vec3f y_vector= {pts[2].y - pts[0].y, pts[1].y -pts[0].y, pts[0].y-p.y};
+   struct Vec3f u = vector_cross(x_vector, y_vector);
    struct Vec3f tmp = {-1, 1, 1};
+   //if the z cordinate is < 1 then this means that the triangle is either a 
+   //line or something else
    if (abs(u.z) < 1) { return tmp; };
    struct Vec3f result = {1.0f - (u.x + u.y)/u.z, u.y/u.z, u.x/u.z};
    return result;
@@ -65,9 +67,12 @@ struct Vec3f barycentric(struct Vec2i *pts, struct Vec2i p){
 
 void triangle(struct Vec2i *pts, 
         struct TGA_image image, struct TGAColor color){
+
     struct Vec2i bboxmin = {WIDTH-1, HEIGHT-1};
     struct Vec2i bboxmax = {0, 0};
     struct Vec2i clamp = {WIDTH-1, HEIGHT-1};
+    //we need to create a box for the traingles points
+    //to later loop through
     for(int i = 0; i < 3; i++){
         bboxmin.x = max(0, min(bboxmin.x, pts[i].x));
         bboxmin.y = max(0, min(bboxmin.y, pts[i].y));
@@ -76,6 +81,9 @@ void triangle(struct Vec2i *pts,
         bboxmax.x = max(clamp.x, min(bboxmax.x, pts[i].x));
         bboxmax.y = max(clamp.y, min(bboxmax.y, pts[i].y));
     }
+    //we now loop through the boxes points so that we can
+    //create a barycentric cordinate based on each point and determine
+    //if it is in the triangle
     struct Vec2i P;
     for(P.x = bboxmin.x; P.x <= bboxmax.x; P.x++){
         for(P.y = bboxmin.y; P.y <= bboxmax.y; P.y++){
@@ -103,20 +111,33 @@ int main(int argc, char* argv[]){
     //struct TGA_image image = loadTGA(argv[1]);
     struct TGA_image image = createTGA(WIDTH, HEIGHT, RGB);
 
+
+    struct Vec3f light_dir = {0, 0, -1};
     if(!wireframe){
         for(int i = 0; i < model.nfaces; i++){
             //draw triangles based off object file
             struct face face = model.faces[i];
             struct Vec2i screen_coords[3];
+            struct Vec3f world_cords[3];
             for(int j = 0; j < 3;j++){
                 //subtract 1 from index because it is relative
-                struct Vec3f world_coords = model.vertices[face.indices[j]-1];
+                struct Vec3f v = model.vertices[face.indices[j]-1];
                 //convert the world cords to align properly in our view
-                struct Vec2i tmp = {(world_coords.x+1)*WIDTH/2., (world_coords.y+1)*HEIGHT/2};
+                struct Vec2i tmp = {(v.x+1)*WIDTH/2., (v.y+1)*HEIGHT/2};
                 screen_coords[j] = tmp;
+                world_cords[j] = v;
             }
-            struct TGAColor color = {rand()%255, rand()%255, rand()%255} ;
-            triangle(screen_coords, image, color);
+            //get the normal vector by the cross of each side of the triangle
+            struct Vec3f n = vector_cross(vector_sub3f(world_cords[2], world_cords[0]),
+                    vector_sub3f(world_cords[1], world_cords[0]));
+            normalize3f(&n);
+            //We need to get the intensity by the dot of the normal and light
+            //direciton in the world to know how to color the triangle
+            float intensity = dot(n, light_dir);
+            if(intensity > 0){
+                struct TGAColor color = {255*intensity, 255* intensity, 255*intensity};
+                triangle(screen_coords, image, color);
+            }
         }
     }else{
         for(int i = 0; i < model.nfaces; i++){
