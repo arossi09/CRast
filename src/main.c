@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <limits.h>
 
 #define WIDTH 800
 #define HEIGHT 800
@@ -13,10 +14,6 @@ struct TGAColor white = {255, 255, 255};
 struct TGAColor red = {255, 0, 0};
 struct TGAColor blue = {0, 0, 255};
 
-
-//Wrote my own TGA library that can read and write tga formatted files
-//Used this along with another class I wrote to read .obj files into
-//a data structure to be able to draw obj files to the tga file.
 
 void line(int x0, int y0, int x1, int y1, struct TGA_image image, 
         struct TGAColor color){
@@ -51,7 +48,7 @@ void line(int x0, int y0, int x1, int y1, struct TGA_image image,
 
 
 
-struct Vec3f barycentric(struct Vec2i *pts, struct Vec2i p){
+struct Vec3f barycentric(struct Vec3f *pts, struct Vec3f p){
     //we need to take the cross product between ABx ACx PAx & ABy ACy PAy
     //in order to find the resulting orthogonal vector [u v 1]
    struct Vec3f x_vector= {pts[2].x - pts[0].x, pts[1].x - pts[0].x, pts[0].x - p.x};
@@ -65,7 +62,7 @@ struct Vec3f barycentric(struct Vec2i *pts, struct Vec2i p){
    return result;
 }
 
-void triangle(struct Vec2i *pts, 
+void triangle(struct Vec3f *pts, float *zbuffer,
         struct TGA_image image, struct TGAColor color){
 
     struct Vec2i bboxmin = {WIDTH-1, HEIGHT-1};
@@ -84,12 +81,20 @@ void triangle(struct Vec2i *pts,
     //we now loop through the boxes points so that we can
     //create a barycentric cordinate based on each point and determine
     //if it is in the triangle
-    struct Vec2i P;
+    struct Vec3f P;
     for(P.x = bboxmin.x; P.x <= bboxmax.x; P.x++){
         for(P.y = bboxmin.y; P.y <= bboxmax.y; P.y++){
             struct Vec3f bc_screen = barycentric(pts, P);
             if(bc_screen.x < 0 || bc_screen.y < 0 || bc_screen.z < 0)continue;
-            setPixel(image, P.x, P.y, color);
+            P.z = 0;
+            P.z += pts[0].z*bc_screen.x;
+            P.z += pts[1].z*bc_screen.y;
+            P.z += pts[2].z*bc_screen.z;
+
+            if(zbuffer[(int)(P.x+P.y*WIDTH)]<P.z){
+                zbuffer[(int)(P.x+P.y*WIDTH)] = P.z;
+                setPixel(image, P.x, P.y, color);
+            }
         }
     }
 }
@@ -99,7 +104,11 @@ int main(int argc, char* argv[]){
     int wireframe = 0;
 
     struct OBJ_Model model;
-    if(3 == argc){
+
+    if(2 == argc){
+        model = loadModel(argv[1]);
+    }
+    else if(3 == argc){
         model = loadModel(argv[1]);
         wireframe = 1;
     }else{
@@ -113,17 +122,19 @@ int main(int argc, char* argv[]){
 
 
     struct Vec3f light_dir = {0, 0, -1};
+    float zbuffer[WIDTH*HEIGHT] = {INT_MIN};
     if(!wireframe){
         for(int i = 0; i < model.nfaces; i++){
             //draw triangles based off object file
             struct face face = model.faces[i];
-            struct Vec2i screen_coords[3];
+            struct Vec3f screen_coords[3];
             struct Vec3f world_cords[3];
             for(int j = 0; j < 3;j++){
                 //subtract 1 from index because it is relative
                 struct Vec3f v = model.vertices[face.indices[j]-1];
                 //convert the world cords to align properly in our view
-                struct Vec2i tmp = {(v.x+1)*WIDTH/2., (v.y+1)*HEIGHT/2};
+                struct Vec3f tmp = {(v.x+1)*WIDTH/2., (v.y+1)*HEIGHT/2,
+                    (v.z+1)*( HEIGHT*WIDTH )/2};
                 screen_coords[j] = tmp;
                 world_cords[j] = v;
             }
@@ -136,7 +147,7 @@ int main(int argc, char* argv[]){
             float intensity = dot(n, light_dir);
             if(intensity > 0){
                 struct TGAColor color = {255*intensity, 255* intensity, 255*intensity};
-                triangle(screen_coords, image, color);
+                triangle(screen_coords, zbuffer, image, color);
             }
         }
     }else{
