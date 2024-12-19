@@ -15,6 +15,8 @@ struct TGAColor red = {255, 0, 0};
 struct TGAColor blue = {0, 0, 255};
 
 
+//Given two points, a TGA image and a color draws a line between the
+//two points
 void line(int x0, int y0, int x1, int y1, struct TGA_image image, 
         struct TGAColor color){
     int steep = 0;
@@ -47,7 +49,9 @@ void line(int x0, int y0, int x1, int y1, struct TGA_image image,
 }
 
 
-
+//We need this function to generate the bary centric cordinates
+//given three points to mak up a triangle and the point to be 
+//tested.
 struct Vec3f barycentric(struct Vec3f *pts, struct Vec3f p){
     //we need to take the cross product between ABx ACx PAx & ABy ACy PAy
     //in order to find the resulting orthogonal vector [u v 1]
@@ -132,6 +136,7 @@ int main(int argc, char* argv[]){
             for(int j = 0; j < 3;j++){
                 //subtract 1 from index because it is relative
                 struct Vec3f v = model.vertices[face.indices[j]-1];
+                struct Vec3f vt= model.vtextures[face.vt_indices[j]-1];
                 //convert the world cords to align properly in our view
                 struct Vec3f tmp = {(v.x+1)*WIDTH/2., (v.y+1)*HEIGHT/2,
                     (v.z+1)*( HEIGHT*WIDTH )/2};

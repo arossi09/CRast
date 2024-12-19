@@ -17,20 +17,24 @@ struct OBJ_Model loadModel(const char *filename){
 
     char line[BUFF];
     ssize_t verts_buff_size = BUFF;
+    ssize_t vtexture_buff_size =BUFF;
     ssize_t faces_buff_size = BUFF;
     float x, y, z;
     int v1, v2, v3;
+    int vt1, vt2, vt3;
     obj.nverts = 0;
+    obj.nvtexts = 0;
     obj.nfaces = 0;
 
     //need ot allocate vertices as a dynamic array of arrays to hold
     //vertices
     obj.vertices = (struct Vec3f*)malloc(verts_buff_size * sizeof(struct Vec3f)); 
+    obj.vtextures = (struct Vec3f*)malloc(vtexture_buff_size * sizeof(struct Vec3f));
     obj.faces = (struct face*)malloc(faces_buff_size *sizeof(struct face));
 
     //read till EOF
     while(readLine(fd, line) > -1){
-        printLine(line);
+        //printLine(line);
         //we need to check if the beginning of the line 
         //is a vertex decleration
         if(strncmp(&line[0], "v ", 2) == 0){
@@ -49,6 +53,25 @@ struct OBJ_Model loadModel(const char *filename){
             obj.vertices[obj.nverts] = vert;
             obj.nverts++;
         }    
+        //for the vertex texture cordinates
+        if(strncmp(&line[0], "vt ", 2) == 0){
+            printLine(line);
+            if(obj.nvtexts >= vtexture_buff_size){
+                vtexture_buff_size *= 2;
+                struct Vec3f *temp = (struct Vec3f*)realloc(obj.vtextures,
+                        vtexture_buff_size*sizeof(struct Vec3f));
+                if(temp == NULL){
+                    printf("OBJ_model: couldnt realloc mem\n");
+                    return obj;
+                }
+                obj.vtextures = temp;
+            }
+            sscanf(line, "%*c %f %f %f", &x, &y, &z);
+            struct Vec3f vtext = {x, y, z};
+            obj.vtextures[obj.nvtexts] = vtext;
+            obj.nvtexts++;
+        }
+        //for the face indecies into the vertex array
         if(strncmp(&line[0], "f ", 2) == 0){
            if(obj.nfaces >= faces_buff_size){
                faces_buff_size*=2;
@@ -60,10 +83,26 @@ struct OBJ_Model loadModel(const char *filename){
                }
                obj.faces = temp;
            } 
-           if(sscanf(line, "%*c %d/%*d/%*d %d/%*d/%*d %d/%*d/%*d", &v1, &v2, &v3) == 3
-                   || sscanf(line, "%*c %d %d %d", &v1, &v2, &v3) == 3
-                   || sscanf(line, "%*c %d//%*d %d//%*d %d//%*d", &v1, &v2, &v3) == 3){
-               struct face face = {v1, v2, v3};
+           
+           //faces with texture cordinates
+           if(sscanf(line, "%*c %d/%d/%*d %d/%d/%*d %d/%d/%*d", 
+                       &v1, &vt1, &v2, &vt2, &v3, &vt3) == 6
+                   || sscanf(line, "%*c %d/%d %d/%d %d/%d", 
+                       &v1, &vt1, &v2, &vt2, &v3, &vt3) == 6){
+               struct face face = {v1, v2, v3, vt1, vt2, vt3};
+               face.indices[0] = v1;
+               face.indices[1] = v2;
+               face.indices[2] = v3;
+               face.vt_indices[0] = vt1;
+               face.vt_indices[1] = vt2;
+               face.vt_indices[2] = vt3;
+               obj.faces[obj.nfaces] = face;
+               obj.nfaces++;
+           }
+           //faces without texture cordinates
+           else if(sscanf(line, "%*c %d//%*d %d//%*d %d//%*d", &v1, &v2, &v3) == 3
+                   || sscanf(line, "%*c %d %d %d", &v1, &v2, &v3) == 3){
+               struct face face = {v1, v2, v3, vt1, vt2, vt3};
                face.indices[0] = v1;
                face.indices[1] = v2;
                face.indices[2] = v3;
@@ -71,6 +110,7 @@ struct OBJ_Model loadModel(const char *filename){
                obj.nfaces++;
            }
         }
+
     }
 
     close(fd);
@@ -85,6 +125,9 @@ int freeObj(struct OBJ_Model obj){
     }
     if(obj.nfaces >= 1){
         free(obj.faces);
+    }
+    if(obj.nvtexts>= 1){
+        free(obj.vtextures);
     }
     return 1;
 }
