@@ -15,6 +15,8 @@ struct TGAColor red = {255, 0, 0};
 struct TGAColor blue = {0, 0, 255};
 
 
+
+
 //Given two points, a TGA image and a color draws a line between the
 //two points
 void line(int x0, int y0, int x1, int y1, struct TGA_image image, 
@@ -66,12 +68,15 @@ struct Vec3f barycentric(struct Vec3f *pts, struct Vec3f p){
    return result;
 }
 
-void triangle(struct Vec3f *pts, float *zbuffer,
-        struct TGA_image image, struct TGAColor color){
+void triangle(struct Vec3f *pts, struct Vec3f *txtPts, float *zbuffer,
+        struct TGA_image image, struct TGA_image diffuseText, float intensity){
+
+    
 
     struct Vec2i bboxmin = {WIDTH-1, HEIGHT-1};
     struct Vec2i bboxmax = {0, 0};
     struct Vec2i clamp = {WIDTH-1, HEIGHT-1};
+    struct TGAColor tex_color;
     //we need to create a box for the traingles points
     //to later loop through
     for(int i = 0; i < 3; i++){
@@ -95,44 +100,45 @@ void triangle(struct Vec3f *pts, float *zbuffer,
             P.z += pts[1].z*bc_screen.y;
             P.z += pts[2].z*bc_screen.z;
 
+            float u = 1.0f - (txtPts[0].x * bc_screen.x + txtPts[1].x * bc_screen.y + txtPts[2].x * bc_screen.z);
+            float v = 1.0f - (txtPts[0].y * bc_screen.x + txtPts[1].y * bc_screen.y + txtPts[2].y * bc_screen.z);
+            int tex_x = (int)(u*diffuseText.header.width);
+            int tex_y = (int)(v*diffuseText.header.height);
+
+            tex_color = getPixel(diffuseText, tex_x, tex_y);
+            tex_color.r *= intensity;
+            tex_color.g *= intensity;
+            tex_color.b *= intensity;
+
             if(zbuffer[(int)(P.x+P.y*WIDTH)]<P.z){
                 zbuffer[(int)(P.x+P.y*WIDTH)] = P.z;
-                setPixel(image, P.x, P.y, color);
+                setPixel(image, P.x, P.y, tex_color);
             }
         }
     }
 }
 
 int main(int argc, char* argv[]){
-    srand(time(NULL));
     int wireframe = 0;
-
     struct OBJ_Model model;
+    struct TGA_image diffuseText = loadTGA("tga/african_head_diffuse.tga");
+    struct TGA_image image = createTGA(WIDTH, HEIGHT, RGB);
+    model = loadModel("obj/african_head.obj");
 
-    if(2 == argc){
-        model = loadModel(argv[1]);
-    }
-    else if(3 == argc){
-        model = loadModel(argv[1]);
+    if(argc > 1)
         wireframe = 1;
-    }else{
-        model = loadModel("obj/african_head.obj");
-    }
-
-    
 
     //struct TGA_image image = loadTGA(argv[1]);
-    struct TGA_image image = createTGA(WIDTH, HEIGHT, RGB);
-
-
-    struct Vec3f light_dir = {0, 0, -1};
-    float zbuffer[WIDTH*HEIGHT] = {INT_MIN};
     if(!wireframe){
+        struct Vec3f light_dir = {0, 0, -1};
+        float zbuffer[WIDTH*HEIGHT] = {INT_MIN};
+        printf("Drawing Faces...\n");
         for(int i = 0; i < model.nfaces; i++){
             //draw triangles based off object file
             struct face face = model.faces[i];
             struct Vec3f screen_coords[3];
             struct Vec3f world_cords[3];
+            struct Vec3f text_cords[3];
             for(int j = 0; j < 3;j++){
                 //subtract 1 from index because it is relative
                 struct Vec3f v = model.vertices[face.indices[j]-1];
@@ -142,17 +148,18 @@ int main(int argc, char* argv[]){
                     (v.z+1)*( HEIGHT*WIDTH )/2};
                 screen_coords[j] = tmp;
                 world_cords[j] = v;
+                text_cords[j] = vt;
             }
             //get the normal vector by the cross of each side of the triangle
             struct Vec3f n = vector_cross(vector_sub3f(world_cords[2], world_cords[0]),
                     vector_sub3f(world_cords[1], world_cords[0]));
             normalize3f(&n);
+
             //We need to get the intensity by the dot of the normal and light
             //direciton in the world to know how to color the triangle
             float intensity = dot(n, light_dir);
             if(intensity > 0){
-                struct TGAColor color = {255*intensity, 255* intensity, 255*intensity};
-                triangle(screen_coords, zbuffer, image, color);
+                triangle(screen_coords, text_cords, zbuffer, image, diffuseText, intensity);
             }
         }
     }else{
@@ -180,9 +187,9 @@ int main(int argc, char* argv[]){
     }
 
     writeTGA(image, "tga/outfile.tga", 0);
-
     free(image.pixel_bytes);
+    free(diffuseText.pixel_bytes);
     freeObj(model);
-
+    printf("DONE!\n");
     return 0;
 }

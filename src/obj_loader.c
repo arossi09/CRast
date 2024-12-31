@@ -7,6 +7,7 @@
 #include <stdlib.h>
 
 struct OBJ_Model loadModel(const char *filename){
+    printf("Loading object model...\n");
     struct OBJ_Model obj;
 
     int fd = open(filename, O_RDONLY);
@@ -20,6 +21,7 @@ struct OBJ_Model loadModel(const char *filename){
     ssize_t vtexture_buff_size =BUFF;
     ssize_t faces_buff_size = BUFF;
     float x, y, z;
+    float u, v, w;
     int v1, v2, v3;
     int vt1, vt2, vt3;
     obj.nverts = 0;
@@ -55,7 +57,6 @@ struct OBJ_Model loadModel(const char *filename){
         }    
         //for the vertex texture cordinates
         if(strncmp(&line[0], "vt ", 2) == 0){
-            printLine(line);
             if(obj.nvtexts >= vtexture_buff_size){
                 vtexture_buff_size *= 2;
                 struct Vec3f *temp = (struct Vec3f*)realloc(obj.vtextures,
@@ -66,8 +67,8 @@ struct OBJ_Model loadModel(const char *filename){
                 }
                 obj.vtextures = temp;
             }
-            sscanf(line, "%*c %f %f %f", &x, &y, &z);
-            struct Vec3f vtext = {x, y, z};
+            sscanf(line, "%*c%*c  %f %f %f", &u, &v, &w);
+            struct Vec3f vtext = {u, v, w};
             obj.vtextures[obj.nvtexts] = vtext;
             obj.nvtexts++;
         }
@@ -120,6 +121,7 @@ struct OBJ_Model loadModel(const char *filename){
 
 
 int freeObj(struct OBJ_Model obj){
+    printf("Cleaning up OBJ models...\n");
     if(obj.nverts >= 1){
         free(obj.vertices);
     }

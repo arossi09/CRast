@@ -12,6 +12,7 @@
 //given a TGA file path and a TGA_header struct
 //loads the header data into the struct passed
 struct TGA_image loadTGA(const char *filename){
+    printf("Loading TGA Image[%s]...\n", filename);
     struct TGA_image image;
 
     int fd = open(filename, O_RDONLY);
@@ -70,54 +71,65 @@ struct TGA_image loadTGA(const char *filename){
     return image;
 }
 
-
-//used for decoding RLE encoded format
-//dont know if this works
-int decode_RLE(unsigned char **data, size_t *size){
+//this does not work
+int decode_RLE(unsigned char **data, size_t *size) {
     size_t buffer_size = *size;
-    unsigned char *decoded_data = (unsigned char*)malloc(*size);
+    unsigned char *decoded_data = (unsigned char *)malloc(buffer_size);
 
-    if(decoded_data == NULL){
-        printf("decode_RLE: couldnt alocate memory\n");
+    if (decoded_data == NULL) {
+        printf("decode_RLE: could not allocate memory\n");
         return 0;
     }
 
-    int count;
-    char character;
-    int new_size = 0;
-
-    for(int i = 0; i < *size-2; i+=2){
-       count = *data[i] - 48; 
-       character = *data[i+1];
-
-       while(new_size + count > buffer_size){
-           buffer_size *= 2;
-           unsigned char *temp = (unsigned char*)realloc(decoded_data, buffer_size);
-           if(temp == NULL){
-               printf("decode_RLE: coulndt realloc mem\n");
-               free(decoded_data);
-               return 0;
-           }
-           decoded_data = temp;
-       }
-
-       for(int j = 0; j < count; j++){
-           decoded_data[new_size] = character;
-           new_size++;
-       }
+    size_t new_size = 0;
+    for (size_t i = 0; i < *size; ) {
+        unsigned char control_byte = (*data)[i++];
+        if (control_byte >= 128) { // Run-length packet
+            int count = control_byte - 127;
+            unsigned char pixel_value = (*data)[i++];
+            while (new_size + count > buffer_size) {
+                buffer_size *= 2;
+                unsigned char *temp = (unsigned char *)realloc(decoded_data, buffer_size);
+                if (temp == NULL) {
+                    printf("decode_RLE: could not realloc memory\n");
+                    free(decoded_data);
+                    return 0;
+                }
+                decoded_data = temp;
+            }
+            for (int j = 0; j < count; j++) {
+                decoded_data[new_size++] = pixel_value;
+            }
+        } else { // Raw packet
+            int count = control_byte + 1;
+            while (new_size + count > buffer_size) {
+                buffer_size *= 2;
+                unsigned char *temp = (unsigned char *)realloc(decoded_data, buffer_size);
+                if (temp == NULL) {
+                    printf("decode_RLE: could not realloc memory\n");
+                    free(decoded_data);
+                    return 0;
+                }
+                decoded_data = temp;
+            }
+            memcpy(&decoded_data[new_size], &(*data)[i], count);
+            new_size += count;
+            i += count;
+        }
     }
 
-
-    *data = realloc(decoded_data, new_size);
+    unsigned char *temp = realloc(decoded_data, new_size);
+    if (temp == NULL) {
+        printf("decode_RLE: failed to realloc data\n");
+        free(decoded_data);
+        return 0;
+    }
+    *data = temp;
     *size = new_size;
-
-    if(data == NULL){
-        printf("decode_RLE, failed to realloc data\n");
-        return 0;
-    }
 
     return 1;
 }
+
 
 //validates headers to ensure they aren't corrupted
 int validateHeader(const struct TGA_header *header){
@@ -157,6 +169,7 @@ int validateHeader(const struct TGA_header *header){
 
 
 struct TGA_image createTGA(int width, int height, Depth format){
+    printf("Creating TGA image...\n");
     struct TGA_image image;
     memset(&image.header, 0, sizeof(image.header));
 
@@ -175,7 +188,8 @@ struct TGA_image createTGA(int width, int height, Depth format){
 }
 
 //Used for saving image
-int writeTGA(const struct TGA_image image, const char *filename, int rle){
+int writeTGA(struct TGA_image image, const char *filename, int rle){
+    printf("Writing tga file...\n");
     int fd = open(filename, O_RDWR | O_TRUNC | O_CREAT,  RW_PERM);
 
     size_t bytes_written = write(fd, &image.header, sizeof(image.header));
@@ -233,8 +247,6 @@ struct TGAColor getPixel(struct TGA_image image, int x, int y){
         raw[i] = image.pixel_bytes[byte];
         i++;
     }
-
-
     memcpy(&pixel, raw, bpp);
     return pixel;
 }
