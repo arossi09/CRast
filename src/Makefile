@@ -3,8 +3,8 @@ CFLAGS = -Wall -ggdb
 LD = gcc
 LDFLAGS = 
 
-all: main.o tga.o util.o obj_loader.o vector.o
-	$(CC) $(CFLAGS) -o prog main.o tga.o util.o obj_loader.o vector.o -lm
+all: main.o tga.o util.o obj_loader.o vector.o matrix.o
+	$(CC) $(CFLAGS) -o prog main.o tga.o util.o obj_loader.o vector.o matrix.o -lm
 
 main.o: main.c
 	$(CC) $(CFLAGS) -c -o main.o main.c
@@ -21,6 +21,8 @@ vector.o: vector.c
 obj_loader.o: obj_loader.c
 	$(CC) $(CFLAGS) -c -o obj_loader.o obj_loader.c
 
+matrix.o: matrix.c
+	$(CC) $(CFLAGS) -c -o matrix.o matrix.c
 clean:
 	@echo Cleaning things... a faint sound of the objects files cry can be heard
 	@rm *.o

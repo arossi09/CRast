@@ -71,61 +71,50 @@ struct TGA_image loadTGA(const char *filename){
     return image;
 }
 
-//this does not work
-int decode_RLE(unsigned char **data, size_t *size) {
+//this needs to be fixed!!!
+//used for decoding RLE encoded format
+int decode_RLE(unsigned char **data, size_t *size){
     size_t buffer_size = *size;
-    unsigned char *decoded_data = (unsigned char *)malloc(buffer_size);
+    unsigned char *decoded_data = (unsigned char*)malloc(*size);
 
-    if (decoded_data == NULL) {
-        printf("decode_RLE: could not allocate memory\n");
+    if(decoded_data == NULL){
+        printf("decode_RLE: couldnt alocate memory\n");
         return 0;
     }
 
-    size_t new_size = 0;
-    for (size_t i = 0; i < *size; ) {
-        unsigned char control_byte = (*data)[i++];
-        if (control_byte >= 128) { // Run-length packet
-            int count = control_byte - 127;
-            unsigned char pixel_value = (*data)[i++];
-            while (new_size + count > buffer_size) {
-                buffer_size *= 2;
-                unsigned char *temp = (unsigned char *)realloc(decoded_data, buffer_size);
-                if (temp == NULL) {
-                    printf("decode_RLE: could not realloc memory\n");
-                    free(decoded_data);
-                    return 0;
-                }
-                decoded_data = temp;
-            }
-            for (int j = 0; j < count; j++) {
-                decoded_data[new_size++] = pixel_value;
-            }
-        } else { // Raw packet
-            int count = control_byte + 1;
-            while (new_size + count > buffer_size) {
-                buffer_size *= 2;
-                unsigned char *temp = (unsigned char *)realloc(decoded_data, buffer_size);
-                if (temp == NULL) {
-                    printf("decode_RLE: could not realloc memory\n");
-                    free(decoded_data);
-                    return 0;
-                }
-                decoded_data = temp;
-            }
-            memcpy(&decoded_data[new_size], &(*data)[i], count);
-            new_size += count;
-            i += count;
-        }
+    int count;
+    char character;
+    int new_size = 0;
+
+    for(int i = 0; i < *size-2; i+=2){
+       count = (*data)[i] - 48; 
+       character = (*data)[i+1];
+
+       while(new_size + count > buffer_size){
+           buffer_size *= 2;
+           unsigned char *temp = (unsigned char*)realloc(decoded_data, buffer_size);
+           if(temp == NULL){
+               printf("decode_RLE: coulndt realloc mem\n");
+               free(decoded_data);
+               return 0;
+           }
+           decoded_data = temp;
+       }
+
+       for(int j = 0; j < count; j++){
+           decoded_data[new_size] = character;
+           new_size++;
+       }
     }
 
-    unsigned char *temp = realloc(decoded_data, new_size);
-    if (temp == NULL) {
-        printf("decode_RLE: failed to realloc data\n");
-        free(decoded_data);
-        return 0;
-    }
-    *data = temp;
+
+    *data = realloc(decoded_data, new_size);
     *size = new_size;
+
+    if(data == NULL){
+        printf("decode_RLE, failed to realloc data\n");
+        return 0;
+    }
 
     return 1;
 }

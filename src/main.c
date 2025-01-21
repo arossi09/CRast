@@ -2,20 +2,33 @@
 #include "obj_loader.h"
 #include "util.h"
 #include "vector.h"
+#include "matrix.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 #include <limits.h>
+#include <math.h>
 
 #define WIDTH 800
 #define HEIGHT 800
+#define DEPTH 255
 
 struct TGAColor white = {255, 255, 255};
 struct TGAColor red = {255, 0, 0};
 struct TGAColor blue = {0, 0, 255};
+struct Vec3f camera = {0, 0, 3};
 
+struct Mat4 viewport(int x, int y, int w, int h ){
+    struct Mat4 m = identityMat4();
+    m.data[0][3] = x+w/2.0f;
+    m.data[1][3] = y+h/2.0f;
+    m.data[2][3] = DEPTH/2.0f;
 
-
+    m.data[0][0] = w/2.0f;
+    m.data[1][1] = h/2.0f;
+    m.data[2][2] = DEPTH/2.0f;
+    return m;
+}
 
 //Given two points, a TGA image and a color draws a line between the
 //two points
@@ -119,70 +132,48 @@ void triangle(struct Vec3f *pts, struct Vec3f *txtPts, float *zbuffer,
 }
 
 int main(int argc, char* argv[]){
-    int wireframe = 0;
+    /*
     struct OBJ_Model model;
     struct TGA_image diffuseText = loadTGA("tga/african_head_diffuse.tga");
     struct TGA_image image = createTGA(WIDTH, HEIGHT, RGB);
     model = loadModel("obj/african_head.obj");
+    struct Vec3f light_dir = {0, 0, -1};
+    float zbuffer[WIDTH*HEIGHT] = {INT_MIN};
 
-    if(argc > 1)
-        wireframe = 1;
+    printf("Drawing Faces...\n");
 
-    //struct TGA_image image = loadTGA(argv[1]);
-    if(!wireframe){
-        struct Vec3f light_dir = {0, 0, -1};
-        float zbuffer[WIDTH*HEIGHT] = {INT_MIN};
-        printf("Drawing Faces...\n");
-        for(int i = 0; i < model.nfaces; i++){
-            //draw triangles based off object file
-            struct face face = model.faces[i];
-            struct Vec3f screen_coords[3];
-            struct Vec3f world_cords[3];
-            struct Vec3f text_cords[3];
-            for(int j = 0; j < 3;j++){
-                //subtract 1 from index because it is relative
-                struct Vec3f v = model.vertices[face.indices[j]-1];
-                struct Vec3f vt= model.vtextures[face.vt_indices[j]-1];
-                //convert the world cords to align properly in our view
-                struct Vec3f tmp = {(v.x+1)*WIDTH/2., (v.y+1)*HEIGHT/2,
-                    (v.z+1)*( HEIGHT*WIDTH )/2};
-                screen_coords[j] = tmp;
-                world_cords[j] = v;
-                text_cords[j] = vt;
-            }
-            //get the normal vector by the cross of each side of the triangle
-            struct Vec3f n = vector_cross(vector_sub3f(world_cords[2], world_cords[0]),
-                    vector_sub3f(world_cords[1], world_cords[0]));
-            normalize3f(&n);
+    struct Mat4 Projection = identityMat4();
+    struct Mat4 ViewPort = viewport(WIDTH/8, HEIGHT/8, WIDTH*3/4, HEIGHT*3/4);
+    Projection.data[3][2] = -1.0f/camera.z;
 
-            //We need to get the intensity by the dot of the normal and light
-            //direciton in the world to know how to color the triangle
-            float intensity = dot(n, light_dir);
-            if(intensity > 0){
-                triangle(screen_coords, text_cords, zbuffer, image, diffuseText, intensity);
-            }
+
+    for(int i = 0; i < model.nfaces; i++){
+        //draw triangles based off object file
+        struct face face = model.faces[i];
+        struct Vec3f screen_coords[3];
+        struct Vec3f world_cords[3];
+        struct Vec3f text_cords[3];
+        for(int j = 0; j < 3;j++){
+            //subtract 1 from index because it is relative
+            struct Vec3f v = model.vertices[face.indices[j]-1];
+            struct Vec3f vt= model.vtextures[face.vt_indices[j]-1];
+            //convert the world cords to align properly in our view
+            struct Vec3f tmp = {(v.x+1)*WIDTH/2., (v.y+1)*HEIGHT/2,
+                (v.z+1)*( HEIGHT*WIDTH )/2};
+            screen_coords[j] = tmp;
+            world_cords[j] = v;
+            text_cords[j] = vt;
         }
-    }else{
-        for(int i = 0; i < model.nfaces; i++){
-            struct face face = model.faces[i];
-            for(int j = 0; j < 3;j++){
-                //subtract 1 from index because it is relative
-                struct Vec3f v0 = model.vertices[face.indices[j]-1];
-                //second index is moduloed because it will be 4 but needs
-                //to be drawn to 1
-                struct Vec3f v1 = model.vertices[face.indices[(j+1)%3]-1];
-                //we need to add 1 to shift to [0, 2] range for pixel cordinates
-                //0 is bottom left 1 is middle and 2 is the top right.
-                //We multiply by width and height divided by 2 so multiplying
-                //by the middle is the middle of the width and height and 
-                //mutliplying by the top right cancels the 2 so its
-                //just width and height.
-                int x0 = (v0.x + 1.)*WIDTH/2;
-                int y0 = (v0.y + 1.)*HEIGHT/2;
-                int x1 = (v1.x + 1.)*WIDTH/2;
-                int y1 = (v1.y + 1.)*HEIGHT/2;
-                line(x0, y0, x1, y1, image, white);
-            }
+        //get the normal vector by the cross of each side of the triangle
+        struct Vec3f n = vector_cross(vector_sub3f(world_cords[2], world_cords[0]),
+                vector_sub3f(world_cords[1], world_cords[0]));
+        normalize3f(&n);
+
+        //We need to get the intensity by the dot of the normal and light
+        //direciton in the world to know how to color the triangle
+        float intensity = dot(n, light_dir);
+        if(intensity > 0){
+            triangle(screen_coords, text_cords, zbuffer, image, diffuseText, intensity);
         }
     }
 
@@ -191,5 +182,45 @@ int main(int argc, char* argv[]){
     free(diffuseText.pixel_bytes);
     freeObj(model);
     printf("DONE!\n");
+    */
+    struct Mat3 m1 = identityMat3();
+    printMat3(m1);
+    struct Mat3 m2 = identityMat3();
+    struct Mat3 p = multMat3(m1, m2);
+    printMat3(p);
+
     return 0;
+    
 }
+
+
+/*
+void triangle(struct Vec2i *pts, 
+        struct TGA_image image, struct TGAColor color){
+
+    struct Vec2i bboxmin = {WIDTH-1, HEIGHT-1};
+    struct Vec2i bboxmax = {0, 0};
+    struct Vec2i clamp = {WIDTH-1, HEIGHT-1};
+    //we need to create a box for the traingles points
+    //to later loop through
+    for(int i = 0; i < 3; i++){
+        bboxmin.x = max(0, min(bboxmin.x, pts[i].x));
+        bboxmin.y = max(0, min(bboxmin.y, pts[i].y));
+
+
+        bboxmax.x = max(clamp.x, min(bboxmax.x, pts[i].x));
+        bboxmax.y = max(clamp.y, min(bboxmax.y, pts[i].y));
+    }
+    //we now loop through the boxes points so that we can
+    //create a barycentric cordinate based on each point and determine
+    //if it is in the triangle
+    struct Vec2i P;
+    for(P.x = bboxmin.x; P.x <= bboxmax.x; P.x++){
+        for(P.y = bboxmin.y; P.y <= bboxmax.y; P.y++){
+            struct Vec3f bc_screen = barycentric(pts, P);
+            if(bc_screen.x < 0 || bc_screen.y < 0 || bc_screen.z < 0)continue;
+            setPixel(image, P.x, P.y, color);
+        }
+    }
+}
+ */
