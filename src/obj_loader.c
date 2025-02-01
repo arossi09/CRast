@@ -6,6 +6,9 @@
 #include <string.h>
 #include <stdlib.h>
 
+
+//given a OBJ formated file loads the data into the OBJ_model struct
+//which can be found in obj_loader.h 
 struct OBJ_Model loadModel(const char *filename){
     printf("Loading object model...\n");
     struct OBJ_Model obj;
@@ -120,6 +123,7 @@ struct OBJ_Model loadModel(const char *filename){
 }
 
 
+//frees dynamic memory of a OBJ_Model struct
 int freeObj(struct OBJ_Model obj){
     printf("Cleaning up OBJ models...\n");
     if(obj.nverts >= 1){

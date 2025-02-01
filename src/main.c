@@ -18,6 +18,13 @@ struct TGAColor red = {255, 0, 0};
 struct TGAColor blue = {0, 0, 255};
 struct Vec3f camera = {0, 0, 3};
 
+
+struct Vec3f m2v(struct Mat4 m){
+    struct Vec3f res = {m.data[0][0]/m.data[3][0], m.data[1][0]/m.data[3][0], m.data[2][0]/m.data[3][0]};
+    return res;
+}
+
+
 struct Mat4 viewport(int x, int y, int w, int h ){
     struct Mat4 m = identityMat4();
     m.data[0][3] = x+w/2.0f;
@@ -28,6 +35,15 @@ struct Mat4 viewport(int x, int y, int w, int h ){
     m.data[1][1] = h/2.0f;
     m.data[2][2] = DEPTH/2.0f;
     return m;
+}
+struct Mat4 multMat4Vec4(struct Mat4 m, float x, float y, float z, float w) {
+    struct Mat4 result = {0}; // Initialize all values to 0
+
+    result.data[0][0] = m.data[0][0] * x + m.data[0][1] * y + m.data[0][2] * z + m.data[0][3] * w;
+    result.data[1][0] = m.data[1][0] * x + m.data[1][1] * y + m.data[1][2] * z + m.data[1][3] * w;
+    result.data[2][0] = m.data[2][0] * x + m.data[2][1] * y + m.data[2][2] * z + m.data[2][3] * w;
+    result.data[3][0] = m.data[3][0] * x + m.data[3][1] * y + m.data[3][2] * z + m.data[3][3] * w;
+    return result;
 }
 
 //Given two points, a TGA image and a color draws a line between the
@@ -132,7 +148,6 @@ void triangle(struct Vec3f *pts, struct Vec3f *txtPts, float *zbuffer,
 }
 
 int main(int argc, char* argv[]){
-    /*
     struct OBJ_Model model;
     struct TGA_image diffuseText = loadTGA("tga/african_head_diffuse.tga");
     struct TGA_image image = createTGA(WIDTH, HEIGHT, RGB);
@@ -158,9 +173,8 @@ int main(int argc, char* argv[]){
             struct Vec3f v = model.vertices[face.indices[j]-1];
             struct Vec3f vt= model.vtextures[face.vt_indices[j]-1];
             //convert the world cords to align properly in our view
-            struct Vec3f tmp = {(v.x+1)*WIDTH/2., (v.y+1)*HEIGHT/2,
-                (v.z+1)*( HEIGHT*WIDTH )/2};
-            screen_coords[j] = tmp;
+            //probably want to change this soon so vector multiplcation is more clean
+            screen_coords[j] = m2v(multMat4Vec4(multMat4(ViewPort, Projection), v.x, v.y, v.z, 1.0f));
             world_cords[j] = v;
             text_cords[j] = vt;
         }
@@ -182,12 +196,6 @@ int main(int argc, char* argv[]){
     free(diffuseText.pixel_bytes);
     freeObj(model);
     printf("DONE!\n");
-    */
-    struct Mat3 m1 = identityMat3();
-    printMat3(m1);
-    struct Mat3 m2 = identityMat3();
-    struct Mat3 p = multMat3(m1, m2);
-    printMat3(p);
 
     return 0;
     
@@ -195,6 +203,7 @@ int main(int argc, char* argv[]){
 
 
 /*
+ * Depricated triangle 
 void triangle(struct Vec2i *pts, 
         struct TGA_image image, struct TGAColor color){
 

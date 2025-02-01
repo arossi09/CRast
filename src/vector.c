@@ -68,3 +68,4 @@ void normalize3f(struct Vec3f *v0){
     v0->z = v0->z/magnitude;
 }
 
+
