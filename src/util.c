@@ -1,4 +1,4 @@
-#include "util.h"
+#include "../include/util.h"
 #include <unistd.h> 
 
 //readline currently operates on the size of the buffer passed 

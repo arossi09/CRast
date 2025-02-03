@@ -1,6 +1,5 @@
-#include "obj_loader.h"
-#include "util.h"
-#include "vector.h"
+#include "../include/obj_loader.h"
+#include "../include/vector.h"
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>

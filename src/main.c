@@ -1,13 +1,10 @@
-#include "tga.h"
-#include "obj_loader.h"
-#include "util.h"
-#include "vector.h"
-#include "matrix.h"
+#include "../include/tga.h"
+#include "../include/obj_loader.h"
+#include "../include/vector.h"
+#include "../include/matrix.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
 #include <limits.h>
-#include <math.h>
 
 #define WIDTH 800
 #define HEIGHT 800
@@ -97,7 +94,45 @@ struct Vec3f barycentric(struct Vec3f *pts, struct Vec3f p){
    return result;
 }
 
-void triangle(struct Vec3f *pts, struct Vec3f *txtPts, float *zbuffer,
+
+void triangle(struct Vec3f *pts, float *zbuffer,
+        struct TGA_image image, struct TGAColor color){
+
+    struct Vec2i bboxmin = {WIDTH-1, HEIGHT-1};
+    struct Vec2i bboxmax = {0, 0};
+    struct Vec2i clamp = {WIDTH-1, HEIGHT-1};
+    //we need to create a box for the traingles points
+    //to later loop through
+    for(int i = 0; i < 3; i++){
+        bboxmin.x = max(0, min(bboxmin.x, pts[i].x));
+        bboxmin.y = max(0, min(bboxmin.y, pts[i].y));
+
+
+        bboxmax.x = max(clamp.x, min(bboxmax.x, pts[i].x));
+        bboxmax.y = max(clamp.y, min(bboxmax.y, pts[i].y));
+    }
+    //we now loop through the boxes points so that we can
+    //create a barycentric cordinate based on each point and determine
+    //if it is in the triangle
+    struct Vec3f P;
+    for(P.x = bboxmin.x; P.x <= bboxmax.x; P.x++){
+        for(P.y = bboxmin.y; P.y <= bboxmax.y; P.y++){
+            struct Vec3f bc_screen = barycentric(pts, P);
+            if(bc_screen.x < 0 || bc_screen.y < 0 || bc_screen.z < 0)continue;
+            P.z = 0;
+            P.z += pts[0].z*bc_screen.x;
+            P.z += pts[1].z*bc_screen.y;
+            P.z += pts[2].z*bc_screen.z;
+
+            if(zbuffer[(int)(P.x+P.y*WIDTH)]<P.z){
+                zbuffer[(int)(P.x+P.y*WIDTH)] = P.z;
+                setPixel(image, P.x, P.y, color);
+            }
+        }
+    }
+}
+
+void texTriangle(struct Vec3f *pts, struct Vec3f *txtPts, float *zbuffer,
         struct TGA_image image, struct TGA_image diffuseText, float intensity){
 
     
@@ -148,10 +183,23 @@ void triangle(struct Vec3f *pts, struct Vec3f *txtPts, float *zbuffer,
 }
 
 int main(int argc, char* argv[]){
+
+    if(argc < 2){
+        printf("Usage: ./prog filename.obj [diffuse.tga]");
+        return -1;
+    }
+    struct TGA_image diffuseText;
+    if(argc == 3){
+        diffuseText = loadTGA(argv[2]);
+    }
+
+
     struct OBJ_Model model;
-    struct TGA_image diffuseText = loadTGA("tga/african_head_diffuse.tga");
     struct TGA_image image = createTGA(WIDTH, HEIGHT, RGB);
-    model = loadModel("obj/african_head.obj");
+    model = loadModel(argv[1]);
+    if(model.nverts == 0){
+        return -1;
+    }
     struct Vec3f light_dir = {0, 0, -1};
     float zbuffer[WIDTH*HEIGHT] = {INT_MIN};
 
@@ -172,6 +220,7 @@ int main(int argc, char* argv[]){
             //subtract 1 from index because it is relative
             struct Vec3f v = model.vertices[face.indices[j]-1];
             struct Vec3f vt= model.vtextures[face.vt_indices[j]-1];
+
             //convert the world cords to align properly in our view
             //probably want to change this soon so vector multiplcation is more clean
             screen_coords[j] = m2v(multMat4Vec4(multMat4(ViewPort, Projection), v.x, v.y, v.z, 1.0f));
@@ -187,11 +236,17 @@ int main(int argc, char* argv[]){
         //direciton in the world to know how to color the triangle
         float intensity = dot(n, light_dir);
         if(intensity > 0){
-            triangle(screen_coords, text_cords, zbuffer, image, diffuseText, intensity);
+            struct TGAColor color = {255*intensity, 255* intensity, 255*intensity};
+            if(argc == 3){
+                texTriangle(screen_coords, text_cords, zbuffer, image, diffuseText, intensity);
+            }else{
+                triangle(screen_coords, zbuffer, image, color);
+            }
+
         }
     }
 
-    writeTGA(image, "tga/outfile.tga", 0);
+    writeTGA(image, "outfile.tga", 0);
     free(image.pixel_bytes);
     free(diffuseText.pixel_bytes);
     freeObj(model);
@@ -202,34 +257,3 @@ int main(int argc, char* argv[]){
 }
 
 
-/*
- * Depricated triangle 
-void triangle(struct Vec2i *pts, 
-        struct TGA_image image, struct TGAColor color){
-
-    struct Vec2i bboxmin = {WIDTH-1, HEIGHT-1};
-    struct Vec2i bboxmax = {0, 0};
-    struct Vec2i clamp = {WIDTH-1, HEIGHT-1};
-    //we need to create a box for the traingles points
-    //to later loop through
-    for(int i = 0; i < 3; i++){
-        bboxmin.x = max(0, min(bboxmin.x, pts[i].x));
-        bboxmin.y = max(0, min(bboxmin.y, pts[i].y));
-
-
-        bboxmax.x = max(clamp.x, min(bboxmax.x, pts[i].x));
-        bboxmax.y = max(clamp.y, min(bboxmax.y, pts[i].y));
-    }
-    //we now loop through the boxes points so that we can
-    //create a barycentric cordinate based on each point and determine
-    //if it is in the triangle
-    struct Vec2i P;
-    for(P.x = bboxmin.x; P.x <= bboxmax.x; P.x++){
-        for(P.y = bboxmin.y; P.y <= bboxmax.y; P.y++){
-            struct Vec3f bc_screen = barycentric(pts, P);
-            if(bc_screen.x < 0 || bc_screen.y < 0 || bc_screen.z < 0)continue;
-            setPixel(image, P.x, P.y, color);
-        }
-    }
-}
- */
