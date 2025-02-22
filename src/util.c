@@ -37,9 +37,9 @@ void swapi(int *x, int *y){
     *x ^= *y;
 }
 
-int max(int x, int y){
+int max(float x, float y){
    return x >= y ? x : y; 
 }
-int min(int x, int y){
+int min(float x, float y){
     return x <= y ? x : y;
 }
