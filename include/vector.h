@@ -7,11 +7,22 @@ struct Vec3f{
     float z;
 };
 
+struct Vec4f{
+    float x;
+    float y;
+    float z;
+    float w;
+};
+
 struct Vec2i{
     int x;
     int y;
 };
 
+struct Vec2f{
+    float x;
+    float y;
+};
 struct Vec3i{
     int x;
     int y;

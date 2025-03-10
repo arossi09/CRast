@@ -131,7 +131,7 @@ int validateHeader(const struct TGA_header *header){
     }
 
     //we only except if there is or not a color image type for simplicity
-    if(header->cm_type != 0 && header->cm_type != 1){
+    if(header->cm_type != 0 && header->cm_type != 1 && header->cm_type != 3){
         printf("Validation: Invalid color image type, %d", header->cm_type);
         return 0;
     }
@@ -162,7 +162,11 @@ struct TGA_image createTGA(int width, int height, Depth format){
     struct TGA_image image;
     memset(&image.header, 0, sizeof(image.header));
 
-    image.header.image_type = 2;
+    if(format == GRAYSCALE){
+        image.header.image_type = 3;
+    }else if(format == RGB){
+        image.header.image_type = 2;
+    }
     image.header.width = width;
     image.header.height = height;
     image.header.pixel_depth = format * 8;
@@ -206,18 +210,28 @@ int setPixel(struct TGA_image image, int x, int y, struct TGAColor color){
             || y >= image.header.height || image.size == 0){
         return -1;
     }
+    if(image.header.image_type == 2){
 
-    //reverse order to account for TGA BGR format
-    unsigned char raw[4];
-    raw[0] = color.b;
-    raw[1] = color.g;
-    raw[2] = color.r;
-    raw[3] = color.a;
-    
-    //we need to iterate jummp to positition and copy the color to it
-    memcpy(image.pixel_bytes+(x+y*image.header.width)*image.header.pixel_depth/8,
-            raw, image.header.pixel_depth/8);
-    return 1;
+
+        //reverse order to account for TGA BGR format
+        unsigned char raw[4];
+        raw[0] = color.b;
+        raw[1] = color.g;
+        raw[2] = color.r;
+        raw[3] = color.a;
+
+        //we need to iterate jummp to positition and copy the color to it
+        memcpy(image.pixel_bytes+(x+y*image.header.width)*image.header.pixel_depth/8,
+                raw, image.header.pixel_depth/8);
+        return 1;
+    }else if(image.header.image_type == 3){
+        unsigned char raw[1];
+        raw[0] = color.r;
+        memcpy(image.pixel_bytes+(x+y*image.header.width)*image.header.pixel_depth/8,
+                raw, image.header.pixel_depth/8);
+        return 1;
+    }
+    return -1;
 }
 
 struct TGAColor getPixel(struct TGA_image image, int x, int y){

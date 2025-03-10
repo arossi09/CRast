@@ -13,15 +13,21 @@ struct face{
     int vt1;
     int vt2;
     int vt3;
+    int nv1; 
+    int nv2; 
+    int nv3; 
     int indices[3];
     int vt_indices[3];
+    int n_indices[3];
 };
 
 struct OBJ_Model{
     struct Vec3f *vertices;
     struct Vec3f *vtextures;
+    struct Vec3f *norm_vertices;
     struct face *faces;
     int nverts;
+    int nnorm_verts;
     int nfaces;
     int nvtexts;
 };
